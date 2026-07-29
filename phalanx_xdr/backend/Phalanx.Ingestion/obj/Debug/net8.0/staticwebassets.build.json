@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "CHADXmDX6SXmvhpA+8XGUmMZh4lP7CbtO/boB9eRK4c=",
+  "Source": "Phalanx.Ingestion",
+  "BasePath": "_content/Phalanx.Ingestion",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

@@ -1,0 +1,68 @@
+@model IEnumerable<Phalanx.Shared.Data.MemoryEvent>
+@{ ViewData["Title"] = "Phalanx XDR — Memory Events"; }
+
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI', sans-serif; }
+    .xdr-header { padding:20px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:16px; }
+    .xdr-brand  { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-nav a  { color:#8b949e; font-size:13px; text-decoration:none; margin-right:12px; }
+    .xdr-nav a:hover { color:#e6edf3; }
+    .xdr-nav a.active { color:#e6edf3; border-bottom:2px solid #58a6ff; padding-bottom:2px; }
+    .xdr-sub    { font-size:12px; color:#8b949e; margin-left:auto; }
+    .section { padding:16px 24px; }
+    .section-title { font-size:13px; font-weight:600; color:#8b949e; text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px; }
+    .banner { margin:16px 24px; background:#3d1c1c; border:1px solid #f85149; border-radius:8px; padding:12px 16px; font-size:13px; color:#f85149; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 12px; font-size:11px; color:#8b949e; border-bottom:1px solid #21262d; font-weight:500; }
+    td { padding:9px 12px; border-bottom:1px solid #161b22; vertical-align:top; }
+    tr:hover td { background:#161b22; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+    .ind-rwx    { background:#3d1c1c; color:#f85149; }
+    .ind-heap   { background:#3d2c1c; color:#e3b341; }
+    .ind-stack  { background:#3d2c1c; color:#e3b341; }
+    .mono { font-family:monospace; font-size:12px; color:#8b949e; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span class="xdr-nav">
+        <a href="/">Alerts</a><a href="/events">Process</a><a href="/network">Network</a>
+        <a href="/files">Files</a><a href="/logins">Logins</a>
+        <a href="/memory" class="active">Memory</a><a href="/Rules">Rules</a>
+        <a href="/response" style="color:#e3b341;">⚡ Response</a>
+    </span>
+    <span class="xdr-sub">@Model.Count() events</span>
+</div>
+
+@if (Model.Any(e => e.MemoryIndicator == "anonymous_rwx_region"))
+{
+    <div class="banner">⚠ Anonymous RWX regions detected — possible shellcode injection</div>
+}
+
+<div class="section">
+    <div class="section-title">Memory indicators — latest @Model.Count()</div>
+    <table>
+        <thead>
+            <tr><th>Time</th><th>Indicator</th><th>Address</th><th>Process</th><th>Executable</th><th>Host</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var e in Model)
+        {
+            var cls = e.MemoryIndicator switch {
+                "anonymous_rwx_region" => "ind-rwx",
+                "executable_heap"      => "ind-heap",
+                "executable_stack"     => "ind-stack",
+                _ => "ind-heap"
+            };
+            <tr>
+                <td class="mono">@e.Timestamp.ToString("HH:mm:ss")<br><span style="color:#484f58">@e.Timestamp.ToString("MM-dd")</span></td>
+                <td><span class="badge @cls">@e.MemoryIndicator?.Replace("_"," ")</span></td>
+                <td class="mono" style="color:#f85149">@e.MemoryAddress</td>
+                <td><strong>@e.ProcessName</strong> <span class="mono">(pid @e.ProcessPid)</span></td>
+                <td class="mono">@e.ProcessExecutable</td>
+                <td class="mono">@e.Hostname</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

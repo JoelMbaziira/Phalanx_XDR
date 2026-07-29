@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "event_id": "UUID",
+    "timestamp": "ISO8601-UTC"
+  },
+  "agent": {
+    "id": "STRING",
+    "hostname": "STRING",
+    "os": "WINDOWS|LINUX|MACOS"
+  },
+  "event": {
+    "type": "PROCESS_START",
+    "action": "EXECUTE",
+    "data": {
+      "pid": "INT",
+      "ppid": "INT",
+      "process_name": "STRING",
+      "cmd_line": "STRING",
+      "file_path": "STRING",
+      "user": "STRING",
+      "hash_sha256": "STRING"
+    }
+  }
+}

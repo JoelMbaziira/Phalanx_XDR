@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: phalanx-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    # BUG FIX: Original had no persistence — Redis data was lost on restart
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  db:
+    image: postgres:15-alpine
+    container_name: phalanx-db
+    environment:
+      POSTGRES_USER: phalanx_admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: phalanx_db
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    # Health check so dependent services wait for Postgres to be ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phalanx_admin -d phalanx_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:latest
+    container_name: phalanx-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  pg_data:

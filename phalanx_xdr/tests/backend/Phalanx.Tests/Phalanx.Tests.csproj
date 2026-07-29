@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsTestProject>true</IsTestProject>
+    <!-- Suppress the warning about asp-append-version in views at build time -->
+    <NoWarn>$(NoWarn);CS8600;CS8602;CS8603</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"               Version="17.9.0" />
+    <PackageReference Include="xunit"                                Version="2.7.0"  />
+    <PackageReference Include="xunit.runner.visualstudio"            Version="2.5.7"  />
+    <PackageReference Include="coverlet.collector"                   Version="6.0.0"  />
+    <PackageReference Include="FluentAssertions"                     Version="6.12.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"     Version="8.0.0"  />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.0" />
+    <PackageReference Include="Moq"                                  Version="4.20.70" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\backend\Phalanx.Shared\Phalanx.Shared.csproj"         />
+    <ProjectReference Include="..\..\..\backend\Phalanx.Correlator\Phalanx.Correlator.csproj" />
+    <ProjectReference Include="..\..\..\backend\Phalanx.Ingestion\Phalanx.Ingestion.csproj"   />
+    <ProjectReference Include="..\..\..\backend\Phalanx.Console\Phalanx.Console.csproj"       />
+  </ItemGroup>
+
+</Project>

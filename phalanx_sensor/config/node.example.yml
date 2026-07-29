@@ -1,0 +1,27 @@
+# Phalanx Sensor Node configuration
+# Copy to node.yml and edit before running
+
+node:
+  state_dir: /var/lib/phalanx
+  log_level: info           # debug | info | warning
+
+network:
+  interface: ""             # leave blank to auto-detect
+  gateway_ip: ""            # e.g. 192.168.1.1 — excluded from scan alerts
+  local_subnet: ""          # e.g. 192.168.1.0/24 — used for lateral movement detection
+
+server:
+  url: "http://localhost:5038"
+  compress: true
+  batch_size: 50
+  flush_interval: 2.0       # seconds between flush attempts
+  max_backoff: 60.0         # max seconds to wait on connection failure
+
+capture:
+  dns:    true
+  dhcp:   true
+  flows:  true
+  # To disable a module (e.g. if you only want DNS):
+  # flows: false
+
+demo_mode: false            # set true to print live output to console

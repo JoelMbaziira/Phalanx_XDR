@@ -1,0 +1,75 @@
+@model IEnumerable<Phalanx.Shared.Data.LoginEvent>
+@{ ViewData["Title"] = "Phalanx XDR — Login Events"; }
+
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI', sans-serif; }
+    .xdr-header { padding:20px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:16px; }
+    .xdr-brand  { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-nav a  { color:#8b949e; font-size:13px; text-decoration:none; margin-right:12px; }
+    .xdr-nav a:hover { color:#e6edf3; }
+    .xdr-nav a.active { color:#e6edf3; border-bottom:2px solid #58a6ff; padding-bottom:2px; }
+    .xdr-sub    { font-size:12px; color:#8b949e; margin-left:auto; }
+    .search-bar { padding:12px 24px; background:#161b22; border-bottom:1px solid #21262d; }
+    .search-bar input  { background:#0d1117; border:1px solid #30363d; color:#e6edf3; padding:6px 12px; border-radius:6px; font-size:13px; width:300px; outline:none; }
+    .search-bar button { background:#238636; color:#fff; border:none; padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; margin-left:8px; }
+    .section { padding:16px 24px; }
+    .section-title { font-size:13px; font-weight:600; color:#8b949e; text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 12px; font-size:11px; color:#8b949e; border-bottom:1px solid #21262d; font-weight:500; }
+    td { padding:9px 12px; border-bottom:1px solid #161b22; vertical-align:top; }
+    tr:hover td { background:#161b22; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+    .out-success { background:#1c3d1c; color:#3fb950; }
+    .out-failure { background:#3d1c1c; color:#f85149; }
+    .act-escalation { background:#3d2c1c; color:#e3b341; }
+    .act-ssh    { background:#1c2c3d; color:#58a6ff; }
+    .mono { font-family:monospace; font-size:12px; color:#8b949e; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span class="xdr-nav">
+        <a href="/">Alerts</a><a href="/events">Process</a><a href="/network">Network</a>
+        <a href="/files">Files</a><a href="/logins" class="active">Logins</a>
+        <a href="/memory">Memory</a><a href="/Rules">Rules</a>
+        <a href="/response" style="color:#e3b341;">⚡ Response</a>
+    </span>
+    <span class="xdr-sub">@Model.Count() events</span>
+</div>
+
+<div class="search-bar">
+    <form method="get">
+        <input name="q" value="@ViewBag.Query" placeholder="Search user, IP, host…" />
+        <button type="submit">Search</button>
+    </form>
+</div>
+
+<div class="section">
+    <div class="section-title">Login / auth events — latest @Model.Count()</div>
+    <table>
+        <thead>
+            <tr><th>Time</th><th>Action</th><th>Outcome</th><th>User</th><th>Source IP</th><th>Terminal</th><th>Auth Method</th><th>Host</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var e in Model)
+        {
+            var actCls = e.Action switch {
+                "privilege_escalation" => "act-escalation",
+                "ssh_login" => "act-ssh",
+                _ => ""
+            };
+            var outCls = e.Outcome == "success" ? "out-success" : "out-failure";
+            <tr>
+                <td class="mono">@e.Timestamp.ToString("HH:mm:ss")<br><span style="color:#484f58">@e.Timestamp.ToString("MM-dd")</span></td>
+                <td><span class="badge @actCls">@e.Action?.Replace("_"," ")</span></td>
+                <td><span class="badge @outCls">@e.Outcome</span></td>
+                <td><strong>@e.UserName</strong></td>
+                <td class="mono">@(e.SourceIp ?? "—")</td>
+                <td class="mono">@(e.Terminal ?? "—")</td>
+                <td class="mono">@(e.AuthMethod ?? "—")</td>
+                <td class="mono">@e.Hostname</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

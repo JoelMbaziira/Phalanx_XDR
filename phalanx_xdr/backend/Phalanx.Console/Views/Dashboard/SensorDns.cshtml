@@ -1,0 +1,79 @@
+@model IEnumerable<Phalanx.Shared.Data.SensorDnsEvent>
+@{ ViewData["Title"] = "Phalanx XDR — Sensor DNS"; }
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI',sans-serif; margin:0; }
+    .xdr-header { padding:18px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:16px; }
+    .xdr-brand  { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-nav a  { color:#8b949e; font-size:13px; text-decoration:none; margin-right:12px; }
+    .xdr-nav a:hover  { color:#e6edf3; }
+    .xdr-nav a.active { color:#e6edf3; border-bottom:2px solid #58a6ff; padding-bottom:2px; }
+    .toolbar { padding:12px 24px; background:#161b22; border-bottom:1px solid #21262d; display:flex; gap:8px; align-items:center; }
+    .toolbar input  { background:#0d1117; border:1px solid #30363d; color:#e6edf3; padding:6px 12px; border-radius:6px; font-size:13px; width:260px; outline:none; }
+    .toolbar button { background:#238636; color:#fff; border:none; padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; }
+    .toolbar label  { font-size:13px; color:#8b949e; display:flex; align-items:center; gap:6px; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 12px; font-size:11px; color:#8b949e; border-bottom:1px solid #21262d; font-weight:500; }
+    td { padding:8px 12px; border-bottom:1px solid #161b22; vertical-align:middle; }
+    tr:hover td { background:#161b22; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+    .dga-high   { background:#3d1c1c; color:#f85149; }
+    .dga-med    { background:#3d2c1c; color:#e3b341; }
+    .tunnel-flag { background:#2c1c3d; color:#d2a8ff; }
+    .mono { font-family:monospace; font-size:12px; color:#8b949e; }
+    .domain { font-family:monospace; font-size:13px; }
+    .section { padding:0; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span class="xdr-nav">
+        <a href="/">Alerts</a>
+        <a href="/devices">Devices</a>
+        <a href="/sensor-dns" class="active">Sensor DNS</a>
+        <a href="/sensor-alerts">Sensor Alerts</a>
+        <a href="/events">Process</a>
+        <a href="/Rules">Rules</a>
+        <a href="/response" style="color:#e3b341;">⚡ Response</a>
+    </span>
+</div>
+
+<div class="toolbar">
+    <form method="get" style="display:flex;gap:8px;align-items:center;">
+        <input name="q" value="@ViewBag.Query" placeholder="Search domain, IP, MAC…" />
+        <label>
+            <input type="checkbox" name="dgaOnly" value="true" @(ViewBag.DgaOnly == true ? "checked" : "") />
+            DGA / suspicious only
+        </label>
+        <button type="submit">Filter</button>
+    </form>
+    <span style="margin-left:auto;font-size:12px;color:#8b949e">@Model.Count() queries</span>
+</div>
+
+<div class="section">
+    <table>
+        <thead>
+            <tr><th>Time</th><th>Source MAC</th><th>Source IP</th><th>Domain</th><th>Type</th><th>DGA Score</th><th>Flags</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var e in Model)
+        {
+            var dgaCls = e.DgaScore > 0.7f ? "dga-high" : e.DgaScore > 0.4f ? "dga-med" : "";
+            <tr>
+                <td class="mono">@e.Timestamp.ToString("HH:mm:ss.fff")<br><span style="color:#484f58;font-size:10px">@e.Timestamp.ToString("MM-dd")</span></td>
+                <td class="mono">@e.SrcMac</td>
+                <td class="mono" style="color:#58a6ff">@e.SrcIp</td>
+                <td class="domain" style="@(e.DgaScore > 0.7f ? "color:#f85149" : "")">@e.Domain</td>
+                <td class="mono">@e.QueryType</td>
+                <td>
+                    @if (e.DgaScore > 0) {
+                        <span class="badge @dgaCls">@e.DgaScore.ToString("F2")</span>
+                    }
+                </td>
+                <td>
+                    @if (e.IsTunnel) { <span class="badge tunnel-flag">TUNNEL</span> }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

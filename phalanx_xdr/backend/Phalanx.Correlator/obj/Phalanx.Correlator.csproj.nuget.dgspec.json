@@ -1,0 +1,168 @@
+{
+  "format": 1,
+  "restore": {
+    "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Correlator/Phalanx.Correlator.csproj": {}
+  },
+  "projects": {
+    "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Correlator/Phalanx.Correlator.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Correlator/Phalanx.Correlator.csproj",
+        "projectName": "Phalanx.Correlator",
+        "projectPath": "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Correlator/Phalanx.Correlator.csproj",
+        "packagesPath": "/home/j-j/.nuget/packages/",
+        "outputPath": "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Correlator/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/j-j/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Shared/Phalanx.Shared.csproj": {
+                "projectPath": "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Shared/Phalanx.Shared.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.SignalR.Client": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Microsoft.Extensions.Hosting": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.12.14, )"
+            },
+            "YamlDotNet": {
+              "target": "Package",
+              "version": "[15.1.6, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/home/j-j/.dotnet/sdk/8.0.420/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Shared/Phalanx.Shared.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Shared/Phalanx.Shared.csproj",
+        "projectName": "Phalanx.Shared",
+        "projectPath": "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Shared/Phalanx.Shared.csproj",
+        "packagesPath": "/home/j-j/.nuget/packages/",
+        "outputPath": "/mnt/c/Users/mbazi/Phalanx/phalanx_xdr/backend/Phalanx.Shared/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/j-j/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/home/j-j/.dotnet/sdk/8.0.420/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

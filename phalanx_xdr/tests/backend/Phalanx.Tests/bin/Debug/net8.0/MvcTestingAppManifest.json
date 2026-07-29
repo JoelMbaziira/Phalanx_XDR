@@ -1,0 +1,6 @@
+{
+  "Phalanx.Console, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/mnt\/c\/Users\/mbazi\/Phalanx\/phalanx_xdr\/backend\/Phalanx.Console",
+  "Phalanx.Correlator, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/mnt\/c\/Users\/mbazi\/Phalanx\/phalanx_xdr\/backend\/Phalanx.Correlator",
+  "Phalanx.Ingestion, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/mnt\/c\/Users\/mbazi\/Phalanx\/phalanx_xdr\/backend\/Phalanx.Ingestion",
+  "Phalanx.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/mnt\/c\/Users\/mbazi\/Phalanx\/phalanx_xdr\/backend\/Phalanx.Shared"
+}

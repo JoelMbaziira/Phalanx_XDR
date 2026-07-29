@@ -1,0 +1,84 @@
+@model IEnumerable<Phalanx.Shared.Data.RuleStat>
+
+@{
+    ViewData["Title"] = "Phalanx XDR — Rules";
+}
+
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI', sans-serif; }
+    .xdr-header { padding:20px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:12px; }
+    .xdr-brand { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-sub { font-size:12px; color:#8b949e; margin-left:auto; }
+    .alerts-section { padding:20px 24px; }
+    .section-title { font-size:13px; font-weight:600; color:#8b949e; text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 12px; font-size:11px; color:#8b949e; border-bottom:1px solid #21262d; font-weight:500; }
+    td { padding:10px 12px; border-bottom:1px solid #161b22; vertical-align:top; }
+    tr:hover td { background:#161b22; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+    .sev-critical { background:#3d1c1c; color:#f85149; }
+    .sev-high { background:#3d2c1c; color:#e3b341; }
+    .sev-medium { background:#1c2c3d; color:#58a6ff; }
+    .sev-low { background:#1c3d1c; color:#3fb950; }
+    .src-phalanx { background:#1c2c3d; color:#58a6ff; }
+    .src-sigma { background:#3d1c3d; color:#bc8cff; }
+    .rule-id { font-family:monospace; font-size:11px; color:#58a6ff; }
+    .num { font-family:monospace; font-size:13px; color:#e6edf3; }
+    .empty-state { text-align:center; padding:60px; color:#8b949e; }
+    a { color:#58a6ff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span style="color:#8b949e; font-size:13px">Detection Rules</span>
+    <span class="xdr-sub"><a href="/">← Dashboard</a></span>
+</div>
+
+<div class="alerts-section">
+    <div class="section-title">Loaded rules — @Model.Count() total</div>
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <div style="font-size:32px; margin-bottom:12px">📋</div>
+            <div>No rules loaded. Check that the rules/ directory exists and the Correlator started.</div>
+        </div>
+    }
+    else
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>Rule ID</th>
+                    <th>Title</th>
+                    <th>Severity</th>
+                    <th>Source</th>
+                    <th>Fires</th>
+                    <th>Last fired</th>
+                    <th>Loaded</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in Model)
+            {
+                var sev = r.Severity switch {
+                    "Critical" => "sev-critical",
+                    "High" => "sev-high",
+                    "Medium" => "sev-medium",
+                    _ => "sev-low"
+                };
+                var src = r.Source == "sigma" ? "src-sigma" : "src-phalanx";
+                <tr>
+                    <td><span class="rule-id">@r.RuleId</span></td>
+                    <td>@r.RuleName</td>
+                    <td><span class="badge @sev">@r.Severity</span></td>
+                    <td><span class="badge @src">@r.Source</span></td>
+                    <td class="num">@r.FireCount</td>
+                    <td class="num">@(r.LastFiredAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</td>
+                    <td class="num" style="color:#8b949e">@r.LoadedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>

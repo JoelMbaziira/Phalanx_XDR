@@ -1,0 +1,29 @@
+# Phalanx automated response policy
+# ─────────────────────────────────────────────────────────────────────────────
+# When a file event flags a suspicious download (PHX-013), quarantine the
+# file. Shipped as DRY-RUN by default — the engine logs what it would do
+# without actually moving files. Operator enables dry_run: false once
+# confident in the rule's false-positive rate.
+
+id:    POL-003
+title: Quarantine suspicious downloads
+description: |
+  Flags files matched by PHX-013 (suspicious download) and would chmod 000 +
+  rename .quarantine. Default DRY-RUN: edit dry_run to false to activate.
+
+enabled: true
+dry_run: false             # ← set to false to activate
+
+match:
+  rule_ids:
+    - PHX-202        # suspicious_attachment fires on file events — has file.path; PHX-013 does not
+  severity:
+    - Medium
+    - High
+
+action:
+  type: quarantine_file
+  # path is filled from the alert's file path field at dispatch time
+
+rate_limit:
+  per_host: "10 per 1m"

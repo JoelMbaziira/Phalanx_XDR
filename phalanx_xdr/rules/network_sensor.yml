@@ -1,0 +1,88 @@
+# Detection rules for telemetry emitted by the Phalanx network sensor.
+# These match on the `phalanx.sensor.*` dataset family.
+#
+# Loaded by the same RuleLoader that handles the rest of rules/. Drop this
+# file into rules/ next to behavior.yml etc and restart the Correlator.
+
+id: PHX-300
+title: Port scan detected by network sensor
+description: |
+  The router-side sensor observed a single source touching many distinct
+  IPs or ports in a short window. Indicates active reconnaissance — usually
+  an attacker mapping the LAN, occasionally a misconfigured legitimate
+  scanner. Internal scans are far less likely to be benign than external,
+  so this fires High.
+severity: High
+mitre:
+  tactic: TA0007       # Discovery
+  technique: T1046     # Network Service Scanning
+match:
+  event.action: port_scan_detected
+  event.dataset: phalanx.sensor.scan
+---
+id: PHX-301
+title: C2 beacon detected by network sensor
+description: |
+  The sensor observed a device making periodic connections to the same
+  external destination at a regular interval. This is the canonical
+  signature of malware checking in with command-and-control infrastructure.
+  Sensor only flags beacons after seeing enough samples to be reasonably
+  confident — false positives are rare. Fires Critical.
+severity: Critical
+mitre:
+  tactic: TA0011       # Command and Control
+  technique: T1071     # Application Layer Protocol
+match:
+  event.action: beacon_detected
+  event.dataset: phalanx.sensor.beacon
+---
+id: PHX-302
+title: DGA-suspected DNS query observed
+description: |
+  The sensor's DNS sniffer flagged a query for a domain whose name has
+  statistical properties consistent with a Domain Generation Algorithm
+  (high entropy, low dictionary-word coverage, low digit ratio). Used by
+  malware to rotate C2 endpoints (Conficker-style). False positives include
+  CDN shards (akamai/cloudflare/google) which generate similar-looking
+  names, so this fires Medium unless corroborated by other rules.
+severity: Medium
+mitre:
+  tactic: TA0011
+  technique: T1568.002 # Dynamic Resolution — Domain Generation Algorithms
+match:
+  event.action: dns_query
+  event.dataset: phalanx.sensor.dns
+  dns.dga_score|gt: 0.7
+---
+id: PHX-303
+title: DNS tunnelling observed
+description: |
+  The sensor's DNS sniffer detected query patterns indicative of DNS
+  tunnelling — abnormally long query names, high query rate to a single
+  domain, or base32/base64-shaped subdomain content. Used as a covert
+  exfil channel by sophisticated malware (DNSCat, Cobalt Strike DNS C2).
+  Real tunnelling is rare and high-confidence; fires High.
+severity: High
+mitre:
+  tactic: TA0010       # Exfiltration
+  technique: T1048.003 # Exfil over alternative protocol
+match:
+  event.action: dns_query
+  event.dataset: phalanx.sensor.dns
+  dns.is_tunnel: "true"
+---
+id: PHX-304
+title: New device joined network
+description: |
+  The sensor's DHCP watcher observed a previously-unseen MAC address
+  request an IP lease. Informational — useful for inventory audit and to
+  trigger device-posture workflows. Not a threat detection on its own;
+  fires Low so analysts can review newly-joined devices, especially
+  outside business hours.
+severity: Low
+mitre:
+  tactic: TA0043       # Reconnaissance (passive, by the defender side)
+  technique: T1592     # Gather Victim Host Information
+match:
+  event.action: dhcp_request
+  event.dataset: phalanx.sensor.dhcp

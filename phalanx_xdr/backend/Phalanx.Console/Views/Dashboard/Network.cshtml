@@ -1,0 +1,79 @@
+@model IEnumerable<Phalanx.Shared.Data.NetworkEvent>
+@{ ViewData["Title"] = "Phalanx XDR — Network"; }
+
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI', sans-serif; }
+    .xdr-header { padding:20px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:16px; }
+    .xdr-brand { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-nav a { color:#8b949e; font-size:13px; text-decoration:none; margin-right:12px; }
+    .xdr-nav a:hover { color:#e6edf3; }
+    .xdr-nav a.active { color:#e6edf3; border-bottom:2px solid #58a6ff; padding-bottom:2px; }
+    .xdr-sub { font-size:12px; color:#8b949e; margin-left:auto; }
+    .search-bar { padding:12px 24px; background:#161b22; border-bottom:1px solid #21262d; display:flex; gap:8px; }
+    .search-bar input { background:#0d1117; border:1px solid #30363d; color:#e6edf3; padding:6px 12px; border-radius:6px; font-size:13px; width:300px; outline:none; }
+    .search-bar button { background:#238636; color:#fff; border:none; padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; }
+    .section { padding:16px 24px; }
+    .section-title { font-size:13px; font-weight:600; color:#8b949e; text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 12px; font-size:11px; color:#8b949e; border-bottom:1px solid #21262d; font-weight:500; }
+    td { padding:9px 12px; border-bottom:1px solid #161b22; vertical-align:top; }
+    tr:hover td { background:#161b22; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+    .proto-tcp  { background:#1c2c3d; color:#58a6ff; }
+    .proto-udp  { background:#1c3d2c; color:#3fb950; }
+    .dir-egress  { color:#e3b341; }
+    .dir-ingress { color:#58a6ff; }
+    .mono { font-family:monospace; font-size:12px; color:#8b949e; }
+    .dest { font-family:monospace; font-size:12px; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span class="xdr-nav">
+        <a href="/">Alerts</a>
+        <a href="/events">Process</a>
+        <a href="/network" class="active">Network</a>
+        <a href="/files">Files</a>
+        <a href="/logins">Logins</a>
+        <a href="/memory">Memory</a>
+        <a href="/Rules">Rules</a>
+        <a href="/response" style="color:#e3b341;">⚡ Response</a>
+    </span>
+    <span class="xdr-sub">@Model.Count() connections</span>
+</div>
+
+<div class="search-bar">
+    <form method="get">
+        <input name="q" value="@ViewBag.Query" placeholder="Search IP, domain, process, host…" />
+        <button type="submit">Search</button>
+    </form>
+</div>
+
+<div class="section">
+    <div class="section-title">Network connections — latest @Model.Count()</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th><th>Proto</th><th>Direction</th>
+                <th>Source</th><th>Destination</th><th>Domain</th>
+                <th>Status</th><th>Process</th><th>Host</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var e in Model)
+        {
+            <tr>
+                <td class="mono">@e.Timestamp.ToString("HH:mm:ss")<br><span style="color:#484f58">@e.Timestamp.ToString("MM-dd")</span></td>
+                <td><span class="badge @(e.Transport == "tcp" ? "proto-tcp" : "proto-udp")">@e.Transport?.ToUpper()</span></td>
+                <td class="@(e.Direction == "egress" ? "dir-egress" : "dir-ingress")">@e.Direction</td>
+                <td class="mono">@e.SourceIp:@e.SourcePort</td>
+                <td class="dest"><strong>@e.DestinationIp</strong>:@e.DestinationPort</td>
+                <td class="mono">@e.DestinationDomain</td>
+                <td class="mono" style="font-size:11px">@e.ConnectionStatus</td>
+                <td>@e.ProcessName <span class="mono">(pid @e.ProcessPid)</span></td>
+                <td class="mono">@e.Hostname</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

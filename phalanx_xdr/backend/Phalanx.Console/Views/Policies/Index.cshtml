@@ -1,0 +1,182 @@
+@{
+    ViewData["Title"]       = "Policies";
+
+    var policies   = (IEnumerable<Phalanx.Console.Policies.Policy>) (ViewBag.Policies ?? Enumerable.Empty<Phalanx.Console.Policies.Policy>());
+    var dispatches = (IEnumerable<Phalanx.Shared.Data.PolicyDispatch>) (ViewBag.Dispatches ?? Enumerable.Empty<Phalanx.Shared.Data.PolicyDispatch>());
+    var killSwitch = (string) (ViewBag.KillSwitch ?? "off");
+    var counts     = (Dictionary<string, Dictionary<string, int>>) (ViewBag.Counts
+                       ?? new Dictionary<string, Dictionary<string, int>>());
+
+    int Count(string pid, string outcome) =>
+        counts.TryGetValue(pid, out var d) && d.TryGetValue(outcome, out var n) ? n : 0;
+}
+
+<header class="phx-page-head">
+    <div class="phx-page-head-text">
+        <h1 class="phx-page-title">Response Policies</h1>
+        <p class="phx-page-lede">Automated response on matching detections · YAML-defined, hot-reloaded</p>
+    </div>
+
+    <!-- Kill switch — visible state and one-click toggle -->
+    <form method="post" action="/policies/kill-switch" style="margin:0;">
+        @if (killSwitch == "on")
+        {
+            <input type="hidden" name="state" value="off" />
+            <button class="phx-btn" style="background:var(--phx-high-bg); border-color:var(--phx-high); color:var(--phx-high);">
+                Kill switch · ON — click to enable
+            </button>
+        }
+        else
+        {
+            <input type="hidden" name="state" value="on" />
+            <button class="phx-btn" type="submit">
+                Kill switch · OFF — click to halt all
+            </button>
+        }
+    </form>
+</header>
+
+<div class="phx-content">
+
+@if (TempData["msg"] != null)
+{
+    <div class="phx-card" style="margin-bottom:16px; padding:14px 24px; color:var(--phx-text); border-color:var(--phx-accent);">
+        @TempData["msg"]
+    </div>
+}
+
+<!-- Toolbar -->
+<div class="phx-toolbar" style="margin-bottom:24px;">
+    <form method="post" action="/policies/reload" style="margin:0;">
+        <button class="phx-btn phx-btn-primary" type="submit">↻ Reload from disk</button>
+    </form>
+    <span style="color:var(--phx-text-muted); font-size:12px;">
+        @policies.Count() policies loaded · @dispatches.Count() recent dispatches
+    </span>
+</div>
+
+<!-- Policy list -->
+<div class="phx-card" style="margin-bottom:24px;">
+    <div class="phx-card-head">
+        <h2 class="phx-card-title">Active policies</h2>
+        <span class="phx-card-meta">From policies/ on disk</span>
+    </div>
+
+    @if (!policies.Any())
+    {
+        <div class="phx-empty">
+            <div class="phx-empty-text">No policies loaded</div>
+            <div class="phx-empty-hint">Drop YAML files into the policies/ folder and click Reload</div>
+        </div>
+    }
+    else
+    {
+        <table class="phx-table">
+            <thead>
+                <tr>
+                    <th>Policy</th>
+                    <th>Match</th>
+                    <th>Action</th>
+                    <th>State</th>
+                    <th style="text-align:right;">24h: dispatched</th>
+                    <th style="text-align:right;">dry-run</th>
+                    <th style="text-align:right;">rate-limited</th>
+                    <th style="text-align:right;">errors</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var p in policies)
+            {
+                <tr>
+                    <td>
+                        <div style="font-weight:600;">@p.Title</div>
+                        <div class="col-ghost">@p.Id</div>
+                    </td>
+                    <td class="col-mono">
+                        @if (p.MatchRuleIds.Any())     { <div>@string.Join(", ", p.MatchRuleIds)</div> }
+                        @if (p.MatchSeverity.Any())    { <div style="color:var(--phx-text-muted);">sev: @string.Join(", ", p.MatchSeverity)</div> }
+                    </td>
+                    <td class="col-mono">@p.ActionType</td>
+                    <td>
+                        @if (!p.Enabled) { <span class="phx-badge stat-new">disabled</span> }
+                        else if (p.DryRun) { <span class="phx-badge sev-medium">dry-run</span> }
+                        else { <span class="phx-badge stat-resolved">active</span> }
+                    </td>
+                    <td style="text-align:right;" class="phx-mono">@Count(p.Id, "dispatched")</td>
+                    <td style="text-align:right;" class="phx-mono col-dim">@Count(p.Id, "dry_run")</td>
+                    <td style="text-align:right;" class="phx-mono col-dim">@Count(p.Id, "rate_limited")</td>
+                    <td style="text-align:right;" class="phx-mono col-dim">@Count(p.Id, "error")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+<!-- Recent dispatches -->
+<div class="phx-card">
+    <div class="phx-card-head">
+        <h2 class="phx-card-title">Recent dispatches</h2>
+        <span class="phx-card-meta">Last 100 actions</span>
+    </div>
+
+    @if (!dispatches.Any())
+    {
+        <div class="phx-empty">
+            <div class="phx-empty-text">No dispatches yet</div>
+            <div class="phx-empty-hint">Engine acts on the next matching alert</div>
+        </div>
+    }
+    else
+    {
+        <table class="phx-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Outcome</th>
+                    <th>Policy</th>
+                    <th>Rule</th>
+                    <th>Host</th>
+                    <th>Action</th>
+                    <th>Command ID</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var d in dispatches)
+            {
+                var badge = d.Outcome switch
+                {
+                    "dispatched"          => "stat-resolved",
+                    "dry_run"             => "sev-low",
+                    "rate_limited"        => "sev-medium",
+                    "skipped_killswitch"  => "sev-high",
+                    "error"               => "sev-critical",
+                    _                     => "stat-new",
+                };
+                <tr>
+                    <td><span data-time-utc="@d.DispatchedAt.ToString("o")" data-time-format="time"></span></td>
+                    <td><span class="phx-badge @badge">@d.Outcome</span></td>
+                    <td>
+                        <div style="font-weight:600;">@d.PolicyTitle</div>
+                        <div class="col-ghost">@d.PolicyId</div>
+                    </td>
+                    <td class="col-mono">@d.RuleId</td>
+                    <td class="col-mono">@d.Hostname</td>
+                    <td class="col-mono">@d.Action</td>
+                    <td class="col-mono col-dim">@(string.IsNullOrEmpty(d.CommandId) ? "—" : d.CommandId.Substring(0, Math.Min(8, d.CommandId.Length)))</td>
+                </tr>
+                @if (!string.IsNullOrEmpty(d.ErrorMessage))
+                {
+                    <tr>
+                        <td colspan="7" style="background:var(--phx-surface-2); color:var(--phx-high); font-size:12px; font-family:var(--phx-font-mono); padding-left:48px;">
+                            @d.ErrorMessage
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+</div>

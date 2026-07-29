@@ -1,0 +1,109 @@
+@model IEnumerable<Phalanx.Shared.Data.TelemetryEvent>
+
+@{
+    ViewData["Title"] = "Phalanx XDR — Process Events";
+    var q = ViewBag.Q as string ?? "";
+}
+
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI', sans-serif; }
+    .xdr-header { padding:20px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:16px; }
+    .xdr-brand { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-nav a { color:#8b949e; font-size:13px; text-decoration:none; margin-right:12px; }
+    .xdr-nav a:hover { color:#e6edf3; }
+    .xdr-nav a.active { color:#e6edf3; border-bottom:2px solid #58a6ff; padding-bottom:2px; }
+    .xdr-sub { font-size:12px; color:#8b949e; margin-left:auto; }
+
+    .toolbar { padding:16px 24px; background:#161b22; border-bottom:1px solid #21262d;
+               display:flex; gap:10px; align-items:center; }
+    .toolbar input { flex:1; max-width:520px; background:#0d1117; border:1px solid #30363d;
+                     color:#e6edf3; padding:8px 12px; border-radius:6px; font-size:13px; }
+    .toolbar input:focus { outline:none; border-color:#58a6ff; }
+    .toolbar button { background:#238636; color:#fff; border:none; padding:8px 16px;
+                      border-radius:6px; font-size:13px; cursor:pointer; }
+    .toolbar button:hover { background:#2ea043; }
+
+    .events-section { padding:20px 24px; }
+    .section-title { font-size:13px; font-weight:600; color:#8b949e; text-transform:uppercase;
+                     letter-spacing:.05em; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 12px; font-size:11px; color:#8b949e;
+         border-bottom:1px solid #21262d; font-weight:500; }
+    td { padding:10px 12px; border-bottom:1px solid #161b22; vertical-align:top; }
+    tr:hover td { background:#161b22; }
+    .code { font-family:monospace; font-size:11px; color:#8b949e; }
+    .cmd  { font-family:monospace; font-size:11px; color:#8b949e;
+            max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pname { font-weight:600; color:#e6edf3; }
+    .empty-state { text-align:center; padding:60px; color:#8b949e; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span class="xdr-nav">
+        <a href="/">Alerts</a>
+        <a href="/events" class="active">Process</a>
+        <a href="/network">Network</a>
+        <a href="/files">Files</a>
+        <a href="/logins">Logins</a>
+        <a href="/memory">Memory</a>
+        <a href="/Rules">Rules</a>
+        <a href="/response" style="color:#e3b341;">⚡ Response</a>
+    </span>
+    <span class="xdr-sub">@Model.Count() events</span>
+</div>
+
+<div class="toolbar">
+    <form method="get" action="/events" style="display:flex; gap:10px; align-items:center; flex:1;">
+        <input type="text" name="q" placeholder="Search process, command, host, user..."
+               value="@q" autofocus>
+        <button type="submit">Search</button>
+    </form>
+</div>
+
+<div class="events-section">
+    <div class="section-title">Process events — latest @Model.Count()</div>
+
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            No process events recorded yet.<br><br>
+            <span style="font-size:11px;">Sentinel will populate this stream as soon as it starts seeing process activity.</span>
+        </div>
+    }
+    else
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:140px">Time (UTC)</th>
+                    <th style="width:120px">Action</th>
+                    <th>Process</th>
+                    <th style="width:80px">PID</th>
+                    <th style="width:120px">User</th>
+                    <th style="width:160px">Host</th>
+                    <th>Command</th>
+                    <th>Parent</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var e in Model)
+            {
+                <tr>
+                    <td class="code">
+                        @e.Timestamp.ToString("HH:mm:ss")<br>
+                        <span style="color:#484f58">@e.Timestamp.ToString("yyyy-MM-dd")</span>
+                    </td>
+                    <td class="code">@e.Action</td>
+                    <td><span class="pname">@e.ProcessName</span></td>
+                    <td class="code">@e.ProcessPid</td>
+                    <td>@e.UserName</td>
+                    <td class="code">@e.Hostname</td>
+                    <td><div class="cmd" title="@e.ProcessCommandLine">@e.ProcessCommandLine</div></td>
+                    <td><div class="cmd" title="@e.ParentName @e.ParentCommandLine">@e.ParentName</div></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>

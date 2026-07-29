@@ -1,0 +1,274 @@
+@model IEnumerable<Phalanx.Shared.Data.Alert>
+
+@{
+    ViewData["Title"] = "Overview";
+    // KPIs refresh via AJAX every 10 s — no full page reload needed
+    var openAlerts     = (int)(ViewBag.OpenAlerts     ?? 0);
+    var criticalAlerts = (int)(ViewBag.CriticalAlerts ?? 0);
+    var eventsLast24h  = (long)(ViewBag.EventsLast24h ?? 0);
+    var activeAgents   = (int)(ViewBag.ActiveAgents   ?? 0);
+    var activeSensors  = (int)(ViewBag.ActiveSensors  ?? 0);
+    var liveDevices    = (int)(ViewBag.LiveDevices    ?? 0);
+    var staleMinutes   = (int)(ViewBag.StaleMinutes   ?? 5);
+}
+
+<header class="phx-page-head">
+    <div class="phx-page-head-text">
+        <h1 class="phx-page-title">Security Operations</h1>
+        <p class="phx-page-lede">Real-time threat detection and response across the fleet</p>
+    </div>
+    <span class="phx-page-status">
+        <span class="phx-pulse"></span>
+        All systems operational
+    </span>
+</header>
+
+<div class="phx-content">
+
+    <div class="phx-kpi-grid">
+        <div class="phx-kpi">
+            <div class="phx-kpi-head">
+                <div class="phx-kpi-icon is-high">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 9V13M12 17H12.01M10.3 3.9L1.8 18A2 2 0 003.5 21H20.5A2 2 0 0022.2 18L13.7 3.9A2 2 0 0010.3 3.9Z" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+            <p class="phx-kpi-value" id="kpi-open">@openAlerts</p>
+            <p class="phx-kpi-label">Open alerts</p>
+        </div>
+
+        <div class="phx-kpi">
+            <div class="phx-kpi-head">
+                <div class="phx-kpi-icon is-critical">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+                        <circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+                    </svg>
+                </div>
+            </div>
+            <p class="phx-kpi-value is-critical" id="kpi-critical">@criticalAlerts</p>
+            <p class="phx-kpi-label">Critical · requires triage</p>
+        </div>
+
+        <div class="phx-kpi">
+            <div class="phx-kpi-head">
+                <div class="phx-kpi-icon is-accent">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12H18L15 21L9 3L6 12H2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+            <p class="phx-kpi-value phx-mono" id="kpi-events">@eventsLast24h.ToString("N0")</p>
+            <p class="phx-kpi-label">Events · last 24h</p>
+        </div>
+
+        <div class="phx-kpi">
+            <div class="phx-kpi-head">
+                <div class="phx-kpi-icon is-success">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20H16M12 16V20"/>
+                    </svg>
+                </div>
+            </div>
+            <p class="phx-kpi-value" id="kpi-agents">@activeAgents</p>
+            <p class="phx-kpi-label">Sentinel agents · active @staleMinutes m</p>
+        </div>
+    </div>
+
+    <div class="phx-grid-2">
+
+        <div class="phx-card">
+            <div class="phx-card-head">
+                <h2 class="phx-card-title">Recent alerts</h2>
+                <span class="phx-card-meta">Last 50 detections</span>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <div class="phx-empty">
+                    <svg class="phx-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/>
+                    </svg>
+                    <div class="phx-empty-text">No alerts in the current window</div>
+                    <div class="phx-empty-hint">Awaiting telemetry from Sentinel agents or sensor nodes</div>
+                </div>
+            }
+            else
+            {
+                <div class="phx-alert-list" id="alert-list">
+                @foreach (var a in Model)
+                {
+                    var sev = (a.Severity ?? "low").ToLower();
+                    <div class="phx-alert-item">
+                        <div class="phx-alert-sev is-@sev"></div>
+                        <div class="phx-alert-body">
+                            <div class="phx-alert-row1">
+                                <span class="phx-badge sev-@sev">@a.Severity</span>
+                                <span class="phx-alert-rule">@a.RuleId</span>
+                                <span class="phx-alert-title">@a.RuleName</span>
+                            </div>
+                            <div class="phx-alert-meta">
+                                @if (!string.IsNullOrEmpty(a.ProcessName))  { <span><strong style="color:var(--phx-text)">@a.ProcessName</strong></span> }
+                                @if (!string.IsNullOrEmpty(a.UserName))     { <span>@a.UserName</span> }
+                                @if (!string.IsNullOrEmpty(a.Hostname))     { <span class="phx-mono">@a.Hostname</span> }
+                                @if (!string.IsNullOrEmpty(a.MitreTechnique)){ <span class="phx-mono">@a.MitreTechnique</span> }
+                            </div>
+                        </div>
+                        <div class="phx-alert-time">
+                            <span data-time-utc="@a.DetectedAt.ToString("o")" data-time-format="time"></span>
+                        </div>
+                    </div>
+                }
+                </div>
+            }
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+
+            <div class="phx-card">
+                <div class="phx-card-head">
+                    <h2 class="phx-card-title">Collection coverage</h2>
+                    <span class="phx-card-meta">Live · @staleMinutes m window</span>
+                </div>
+                <div class="phx-card-body is-padded">
+
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                        <div class="phx-kpi-icon is-accent" style="width:36px; height:36px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20H16M12 16V20"/>
+                            </svg>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:14px; font-weight:600;">Sentinel agents</div>
+                            <div style="font-size:12px; color:var(--phx-text-muted);" id="text-agents">@activeAgents active · installed on hosts</div>
+                        </div>
+                        <span id="badge-agents" class="@(activeAgents > 0 ? "phx-badge stat-resolved" : "phx-badge stat-new")">@(activeAgents > 0 ? "Reporting" : "None")</span>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                        <div class="phx-kpi-icon is-medium" style="width:36px; height:36px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 11H5A2 2 0 017 13V14A2 2 0 009 16A2 2 0 0111 18V20.9M21 12A9 9 0 11 3 12A9 9 0 0121 12Z"/>
+                            </svg>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:14px; font-weight:600;">Sensor nodes</div>
+                            <div style="font-size:12px; color:var(--phx-text-muted);" id="text-sensors">@activeSensors active · passive on phalanx-net</div>
+                        </div>
+                        <span id="badge-sensors" class="@(activeSensors > 0 ? "phx-badge stat-resolved" : "phx-badge stat-new")">@(activeSensors > 0 ? "Reporting" : "None")</span>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div class="phx-kpi-icon is-low" style="width:36px; height:36px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/>
+                            </svg>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:14px; font-weight:600;">Devices observed</div>
+                            <div style="font-size:12px; color:var(--phx-text-muted);" id="text-devices">@liveDevices on phalanx-net</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phx-card">
+                <div class="phx-card-head">
+                    <h2 class="phx-card-title">Pipeline health</h2>
+                </div>
+                <div class="phx-card-body is-padded">
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
+                        <span style="font-size:13px; color:var(--phx-text-muted);">Events ingested · 24h</span>
+                        <span class="phx-mono" style="font-size:18px; font-weight:600;">@eventsLast24h.ToString("N0")</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
+                        <span style="font-size:13px; color:var(--phx-text-muted);">Open alerts</span>
+                        <span class="phx-mono" style="font-size:18px; font-weight:600;">@openAlerts</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                        <span style="font-size:13px; color:var(--phx-text-muted);">Status</span>
+                        <span style="font-size:13px; color:var(--phx-live); font-weight:600;">Operational</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+<script>
+(function() {
+    if (typeof signalR === 'undefined') return;
+
+    const conn = new signalR.HubConnectionBuilder()
+        .withUrl("/alertHub")
+        .withAutomaticReconnect()
+        .build();
+
+    conn.on("ReceiveAlert", function(a) {
+        const list = document.getElementById('alert-list');
+        if (!list) return;
+
+        const sev = (a.severity || 'low').toLowerCase();
+
+        const item = document.createElement('div');
+        item.className = 'phx-alert-item phx-new';
+        item.innerHTML = `
+            <div class="phx-alert-sev is-${sev}"></div>
+            <div class="phx-alert-body">
+                <div class="phx-alert-row1">
+                    <span class="phx-badge sev-${sev}">${a.severity || ''}</span>
+                    <span class="phx-alert-rule">${a.ruleId || ''}</span>
+                    <span class="phx-alert-title">${a.ruleName || ''}</span>
+                </div>
+                <div class="phx-alert-meta">
+                    ${a.processName ? `<span><strong style="color:var(--phx-text)">${a.processName}</strong></span>` : ''}
+                    ${a.userName ? `<span>${a.userName}</span>` : ''}
+                    ${a.hostname ? `<span class="phx-mono">${a.hostname}</span>` : ''}
+                    ${a.mitreTechnique ? `<span class="phx-mono">${a.mitreTechnique}</span>` : ''}
+                </div>
+            </div>
+            <div class="phx-alert-time">
+                <span data-time-utc="${a.detectedAt}" data-time-format="time"></span>
+            </div>`;
+        list.insertBefore(item, list.firstChild);
+        if (window.phxRenderTimes) window.phxRenderTimes(item);
+    });
+
+    conn.start().catch(err => console.warn('[Phalanx] SignalR connect:', err));
+})();
+
+// ── AJAX KPI polling — updates counters without reloading the page ──────────
+(function() {
+    function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+
+    function updateKpis() {
+        fetch('/api/dashboard/stats')
+            .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+            .then(function(s) {
+                setText('kpi-open',     s.openAlerts);
+                setText('kpi-critical', s.criticalAlerts);
+                setText('kpi-events',   Number(s.eventsLast24h).toLocaleString());
+                setText('kpi-agents',   s.activeAgents);
+
+                setText('text-agents',  s.activeAgents + ' active · installed on hosts');
+                setText('text-sensors', s.activeSensors + ' active · passive on phalanx-net');
+                setText('text-devices', s.liveDevices + ' on phalanx-net');
+
+                var ab = document.getElementById('badge-agents');
+                if (ab) { ab.textContent = s.activeAgents > 0 ? 'Reporting' : 'None';
+                          ab.className   = s.activeAgents > 0 ? 'phx-badge stat-resolved' : 'phx-badge stat-new'; }
+                var sb = document.getElementById('badge-sensors');
+                if (sb) { sb.textContent = s.activeSensors > 0 ? 'Reporting' : 'None';
+                          sb.className   = s.activeSensors > 0 ? 'phx-badge stat-resolved' : 'phx-badge stat-new'; }
+            })
+            .catch(function() {});   // silently skip on error; next poll retries
+    }
+
+    setInterval(updateKpis, 10000);
+})();
+</script>
+}

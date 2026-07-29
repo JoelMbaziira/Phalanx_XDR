@@ -1,0 +1,156 @@
+id: PHX-200
+title: Email client spawned a shell
+description: An email client process spawned a shell or script interpreter. Classic phishing payload execution — user opened a malicious attachment and the client executed embedded code.
+severity: High
+mitre:
+  tactic: TA0001
+  technique: T1566.001
+match:
+  event.action: email_client_shell
+  event.dataset: phalanx.sentinel.email
+---
+id: PHX-201
+title: Office or document viewer spawning shell
+description: LibreOffice, a PDF viewer, or another document application spawned a shell or downloader. Strongly indicates a macro-embedded phishing document was opened (T1566 — Spearphishing Attachment).
+severity: High
+mitre:
+  tactic: TA0001
+  technique: T1566.001
+match:
+  event.action: process_start
+  process.parent.name:
+    - soffice
+    - soffice.bin
+    - libreoffice
+    - libreoffice7.6
+    - wps
+    - evince
+    - okular
+    - xpdf
+    - mupdf
+  process.name:
+    - bash
+    - sh
+    - dash
+    - zsh
+    - python3
+    - python
+    - perl
+    - ruby
+    - curl
+    - wget
+    - nc
+    - ncat
+    - netcat
+---
+id: PHX-202
+title: Suspicious file in download directory
+description: A file with a typically-malicious extension appeared in a watched directory (Downloads, /tmp). Common landing zone for phishing attachment delivery. Review the file and its origin immediately.
+severity: Medium
+mitre:
+  tactic: TA0001
+  technique: T1566.001
+match:
+  event.action: suspicious_attachment
+  event.dataset: phalanx.sentinel.email
+---
+id: PHX-203
+title: Non-mail-client process connecting to SMTP port
+description: A process that is not a known mail client established a TCP connection to port 25, 465, or 587. Possible credential abuse (account takeover sending spam) or data exfiltration via email.
+severity: Medium
+mitre:
+  tactic: TA0010
+  technique: T1048
+match:
+  event.action: network_connection
+  event.dataset: phalanx.sentinel.network
+  destination.port:
+    - 25
+    - 465
+    - 587
+  process.name|not:
+    - thunderbird
+    - evolution
+    - mutt
+    - alpine
+    - sylpheed
+    - betterbird
+    - mailspring
+    - postfix
+    - sendmail
+    - exim4
+    - dovecot
+    - fetchmail
+    - msmtp
+---
+id: PHX-204
+title: Email client accessing SSH keys or credential store
+description: An email client opened an SSH key, GPG keyring, or password store file. This is outside normal mail client behaviour and suggests a phishing tool is harvesting local credentials to exfiltrate.
+severity: High
+mitre:
+  tactic: TA0006
+  technique: T1555
+match:
+  event.action: file_open
+  event.dataset: phalanx.sentinel.file
+  process.name:
+    - thunderbird
+    - evolution
+    - mutt
+    - alpine
+    - sylpheed
+    - betterbird
+    - mailspring
+  file.path|contains:
+    - /.ssh/
+    - /.gnupg/
+    - /keyring
+    - /kwallet
+    - /pass/
+    - /.password-store/
+---
+id: PHX-205
+title: Mail server log anomaly
+description: The local mail server log (postfix/sendmail) recorded a pattern consistent with phishing delivery, spam relay, or a rejected spoofed message. Investigate the flagged log entry.
+severity: Low
+mitre:
+  tactic: TA0001
+  technique: T1566
+match:
+  event.action: smtp_anomaly
+  event.dataset: phalanx.sentinel.email
+---
+id: PHX-206
+title: Email client then immediate shell execution (phishing chain)
+description: Within 5 minutes of an email client spawning an unknown process, a shell was launched on the same host — indicating a phishing payload that ran a second stage. High confidence of compromise.
+severity: Critical
+mitre:
+  tactic: TA0001
+  technique: T1566.001
+sequence:
+  group_by: host.hostname
+  window_seconds: 300
+  stages:
+    - id: email_child
+      match:
+        event.action: process_start
+        process.parent.name:
+          - thunderbird
+          - evolution
+          - mutt
+          - alpine
+          - soffice
+          - soffice.bin
+          - libreoffice
+    - id: shell_spawned
+      match:
+        event.action: process_start
+        process.name:
+          - bash
+          - sh
+          - dash
+          - python3
+          - python
+          - perl
+          - curl
+          - wget

@@ -1,0 +1,64 @@
+id: PHX-001
+title: Credential dumping tool
+description: A known credential-dumping tool was executed.
+severity: Critical
+mitre:
+  tactic: TA0006
+  technique: T1003
+match:
+  event.action: process_start
+  process.name:
+    - mimikatz
+    - lazagne
+    - secretsdump
+    - pypykatz
+    - hashdump
+    - gsecdump
+---
+id: PHX-002
+title: Exploitation framework
+description: An offensive-security framework was executed.
+severity: Critical
+mitre:
+  tactic: TA0001
+  technique: T1190
+match:
+  event.action: process_start
+  process.name:
+    - msfconsole
+    - msfvenom
+    - metasploit
+    - cobaltstrike
+    - sliver
+    - empire
+---
+id: PHX-003
+title: Lateral movement tool
+description: A known lateral-movement tool was executed.
+severity: High
+mitre:
+  tactic: TA0008
+  technique: T1021
+match:
+  event.action: process_start
+  process.name:
+    - psexec
+    - wmiexec
+    - smbexec
+    - evil-winrm
+    - crackmapexec
+---
+id: PHX-004
+title: Brute force tool
+description: A password brute-forcer was executed.
+severity: High
+mitre:
+  tactic: TA0006
+  technique: T1110
+match:
+  event.action: process_start
+  process.name:
+    - hydra
+    - medusa
+    - ncrack
+    - patator

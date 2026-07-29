@@ -1,0 +1,6 @@
+@Phalanx.Ingestion_HostAddress = http://localhost:5038
+
+GET {{Phalanx.Ingestion_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

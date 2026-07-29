@@ -1,0 +1,96 @@
+id: PHX-100
+title: Discovery burst
+description: Multiple discovery commands within 60 seconds — likely an attacker enumerating the host.
+severity: Medium
+mitre:
+  tactic: TA0007
+  technique: T1033
+match:
+  event.action: process_start
+  process.name:
+    - whoami
+    - id
+    - hostname
+    - uname
+    - netstat
+    - ss
+    - ifconfig
+    - arp
+    - cat            # /etc/passwd, /etc/shadow
+    - groups
+correlate:
+  group_by: agent.id
+  window_seconds: 60
+  threshold: 3
+---
+id: PHX-101
+title: Network discovery burst
+description: Multiple network-discovery tools within 2 minutes.
+severity: High
+mitre:
+  tactic: TA0007
+  technique: T1046
+match:
+  event.action: process_start
+  process.name:
+    - nmap
+    - masscan
+    - rustscan
+    - zmap
+    - arp-scan
+    - netdiscover
+correlate:
+  group_by: agent.id
+  window_seconds: 120
+  threshold: 2
+---
+id: PHX-110
+title: Recon then download
+description: Network scan followed by tool download from the same host within 5 minutes.
+severity: High
+mitre:
+  tactic: TA0011
+  technique: T1105
+sequence:
+  group_by: agent.id
+  window_seconds: 300
+  stages:
+    - id: scan
+      match:
+        event.action: process_start
+        process.name:
+          - nmap
+          - masscan
+          - rustscan
+    - id: download
+      match:
+        event.action: process_start
+        process.name:
+          - wget
+          - curl
+        process.command_line|contains:
+          - " http://"
+          - " https://"
+---
+id: PHX-111
+title: Discovery then privilege escalation attempt
+description: Discovery commands followed by a sudo attempt within 2 minutes.
+severity: High
+mitre:
+  tactic: TA0004
+  technique: T1548
+sequence:
+  group_by: agent.id
+  window_seconds: 120
+  stages:
+    - id: discovery
+      match:
+        event.action: process_start
+        process.name:
+          - whoami
+          - id
+          - sudo -l
+    - id: privesc
+      match:
+        event.action: process_start
+        process.name: sudo

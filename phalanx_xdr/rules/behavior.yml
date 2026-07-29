@@ -1,0 +1,68 @@
+id: PHX-010
+title: Shell spawned by web server
+description: A shell was spawned by a web server process — likely RCE.
+severity: High
+mitre:
+  tactic: TA0002
+  technique: T1059
+match:
+  event.action: process_start
+  process.name:
+    - sh
+    - bash
+    - dash
+    - zsh
+    - ash
+  process.parent.name:
+    - nginx
+    - apache2
+    - httpd
+    - php-fpm
+    - node
+    - tomcat
+    - java
+---
+id: PHX-011
+title: Encoded PowerShell execution
+description: PowerShell invoked with -EncodedCommand or equivalent.
+severity: High
+mitre:
+  tactic: TA0002
+  technique: T1059.001
+match:
+  event.action: process_start
+  process.name:
+    - powershell
+    - pwsh
+  process.command_line|contains:
+    - " -enc"
+    - " -EncodedCommand"
+    - " -ec "
+---
+id: PHX-012
+title: Curl piped to shell
+description: Output of curl/wget piped directly into a shell — common installer-style RCE.
+severity: High
+mitre:
+  tactic: TA0002
+  technique: T1059
+match:
+  event.action: process_start
+  process.command_line|regex:
+    - '(?i)(curl|wget)\s.*\|\s*(sh|bash|zsh)'
+---
+id: PHX-013
+title: Suspicious download
+description: HTTP download via curl/wget from an unsigned binary.
+severity: Medium
+mitre:
+  tactic: TA0011
+  technique: T1105
+match:
+  event.action: process_start
+  process.name:
+    - wget
+    - curl
+  process.command_line|contains:
+    - " http://"
+    - " https://"

@@ -1,0 +1,179 @@
+@model IEnumerable<Phalanx.Shared.Data.NetworkDevice>
+@{
+    ViewData["Title"] = "Phalanx XDR — Device Inventory";
+    var nodes = ViewBag.Nodes as IEnumerable<Phalanx.Shared.Data.SensorNode>
+                ?? Enumerable.Empty<Phalanx.Shared.Data.SensorNode>();
+}
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI',sans-serif; margin:0; }
+    .xdr-header { padding:18px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:16px; }
+    .xdr-brand  { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-nav a  { color:#8b949e; font-size:13px; text-decoration:none; margin-right:12px; }
+    .xdr-nav a:hover  { color:#e6edf3; }
+    .xdr-nav a.active { color:#e6edf3; border-bottom:2px solid #58a6ff; padding-bottom:2px; }
+    .toolbar { padding:12px 24px; background:#161b22; border-bottom:1px solid #21262d;
+               display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .toolbar input, .toolbar select { background:#0d1117; border:1px solid #30363d; color:#e6edf3;
+        padding:6px 12px; border-radius:6px; font-size:13px; outline:none; }
+    .toolbar button { background:#238636; color:#fff; border:none; padding:6px 16px;
+        border-radius:6px; font-size:13px; cursor:pointer; }
+    .stats-bar { display:flex; gap:24px; padding:12px 24px; border-bottom:1px solid #21262d; }
+    .stat { font-size:12px; color:#8b949e; }
+    .stat strong { color:#e6edf3; font-size:18px; display:block; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 12px; font-size:11px; color:#8b949e;
+         border-bottom:1px solid #21262d; font-weight:500; white-space:nowrap; }
+    td { padding:9px 12px; border-bottom:1px solid #161b22; vertical-align:middle; }
+    tr:hover td { background:#161b22; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+    .risk-high   { background:#3d1c1c; color:#f85149; }
+    .risk-med    { background:#3d2c1c; color:#e3b341; }
+    .risk-low    { background:#1c3d1c; color:#3fb950; }
+    .risk-none   { background:#1c2234; color:#8b949e; }
+    .mono { font-family:monospace; font-size:12px; color:#8b949e; }
+    .os-win  { color:#58a6ff; }
+    .os-mac  { color:#e6edf3; }
+    .os-lin  { color:#f0883e; }
+    .os-and  { color:#3fb950; }
+    .os-ios  { color:#c8c8c8; }
+    .risk-bar { width:60px; height:6px; background:#21262d; border-radius:3px; display:inline-block; vertical-align:middle; }
+    .risk-bar-fill { height:100%; border-radius:3px; }
+    .section { padding:0 0 80px; }
+    .table-wrap { overflow-x:auto; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span class="xdr-nav">
+        <a href="/">Alerts</a>
+        <a href="/devices" class="active">Devices</a>
+        <a href="/sensor-dns">Sensor DNS</a>
+        <a href="/sensor-alerts">Sensor Alerts</a>
+        <a href="/events">Process</a>
+        <a href="/network">Network</a>
+        <a href="/files">Files</a>
+        <a href="/logins">Logins</a>
+        <a href="/Rules">Rules</a>
+        <a href="/response" style="color:#e3b341;">⚡ Response</a>
+    </span>
+</div>
+
+<div class="toolbar">
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input name="q"    value="@ViewBag.Query" placeholder="Search MAC, IP, hostname, OS…" style="width:260px;" />
+        <select name="node">
+            <option value="">All sensor nodes</option>
+            @foreach (var n in nodes)
+            {
+                @if (ViewBag.Node == n.NodeId) {
+                    <option value="@n.NodeId" selected>@(n.Hostname.Length > 0 ? n.Hostname : n.NodeId[..8])</option>
+                } else {
+                    <option value="@n.NodeId">@(n.Hostname.Length > 0 ? n.Hostname : n.NodeId[..8])</option>
+                }
+            }
+        </select>
+        <select name="risk">
+            @if (ViewBag.Risk == "") {
+                <option value="" selected>All risk levels</option>
+            } else {
+                <option value="">All risk levels</option>
+            }
+            @if (ViewBag.Risk == "high") {
+                <option value="high" selected>High risk only</option>
+            } else {
+                <option value="high">High risk only</option>
+            }
+            @if (ViewBag.Risk == "medium") {
+                <option value="medium" selected>Medium+</option>
+            } else {
+                <option value="medium">Medium+</option>
+            }
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+</div>
+
+<div class="stats-bar">
+    <div class="stat"><strong>@Model.Count()</strong>devices shown</div>
+    <div class="stat"><strong style="color:#f85149">@ViewBag.HighRisk</strong>high risk</div>
+    <div class="stat"><strong style="color:#e3b341">@ViewBag.MediumRisk</strong>medium risk</div>
+    <div class="stat"><strong>@nodes.Count()</strong>sensor nodes</div>
+</div>
+
+<div class="section">
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Risk</th>
+                <th>MAC</th>
+                <th>IP</th>
+                <th>Hostname</th>
+                <th>Manufacturer</th>
+                <th>OS</th>
+                <th>Type</th>
+                <th>↓ In</th>
+                <th>↑ Out</th>
+                <th>DNS</th>
+                <th>Conns</th>
+                <th>First seen</th>
+                <th>Last seen</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var d in Model)
+        {
+            var riskCls = d.RiskScore >= 50 ? "risk-high" : d.RiskScore >= 20 ? "risk-med" : d.RiskScore > 0 ? "risk-low" : "risk-none";
+            var riskColor = d.RiskScore >= 50 ? "#f85149" : d.RiskScore >= 20 ? "#e3b341" : "#3fb950";
+            var fillW = Math.Min((int)d.RiskScore, 100);
+            var osCls = d.OsFamily switch {
+                var o when o.Contains("Windows") => "os-win",
+                var o when o.Contains("macOS")   => "os-mac",
+                var o when o.Contains("Linux")   => "os-lin",
+                var o when o.Contains("Android") => "os-and",
+                var o when o.Contains("iOS")     => "os-ios",
+                _ => ""
+            };
+            var osIcon = d.OsFamily switch {
+                var o when o.Contains("Windows") => "🪟",
+                var o when o.Contains("macOS")   => "🍎",
+                var o when o.Contains("Linux")   => "🐧",
+                var o when o.Contains("Android") => "🤖",
+                var o when o.Contains("iOS")     => "📱",
+                _ => "❓"
+            };
+            string Fmt(long bytes) {
+                if (bytes > 1_073_741_824) return $"{bytes/1_073_741_824.0:F1}GB";
+                if (bytes > 1_048_576)     return $"{bytes/1_048_576.0:F1}MB";
+                if (bytes > 1024)          return $"{bytes/1024.0:F0}KB";
+                return $"{bytes}B";
+            }
+            <tr>
+                <td>
+                    <span class="badge @riskCls">@d.RiskScore.ToString("F0")</span>
+                    <span class="risk-bar" title="Risk: @d.RiskScore">
+                        <span class="risk-bar-fill" style="width:@fillW%;background:@riskColor"></span>
+                    </span>
+                </td>
+                <td class="mono">@d.Mac</td>
+                <td class="mono" style="color:#58a6ff">@d.Ip</td>
+                <td>@(d.Hostname.Length > 0 ? d.Hostname : "—")</td>
+                <td style="color:#8b949e;font-size:12px">@d.Manufacturer</td>
+                <td class="@osCls">@osIcon @d.OsFamily @d.OsVersion
+                    @if (d.OsConfidence > 0) {
+                        <span class="mono" style="font-size:10px;color:#484f58">@((d.OsConfidence*100).ToString("F0"))%</span>
+                    }
+                </td>
+                <td style="color:#8b949e;font-size:12px">@d.DeviceType</td>
+                <td class="mono">@Fmt(d.BytesIn)</td>
+                <td class="mono">@Fmt(d.BytesOut)</td>
+                <td class="mono">@d.DnsCount.ToString("N0")</td>
+                <td class="mono">@d.ConnCount.ToString("N0")</td>
+                <td class="mono" style="font-size:11px">@d.FirstSeen.ToString("MM-dd HH:mm")</td>
+                <td class="mono" style="font-size:11px">@d.LastSeen.ToString("HH:mm:ss")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+</div>

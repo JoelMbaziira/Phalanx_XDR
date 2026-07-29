@@ -1,0 +1,411 @@
+@{
+    ViewData["Title"] = "Phalanx XDR — Response";
+    var targets = ViewBag.Targets as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var cmds    = ViewBag.RecentCmds as IEnumerable<Phalanx.Shared.Data.ResponseCommand>
+                  ?? Enumerable.Empty<Phalanx.Shared.Data.ResponseCommand>();
+    var endpoints = targets.Where(t => (string)t.Kind == "endpoint").ToList();
+    var sensors   = targets.Where(t => (string)t.Kind == "sensor").ToList();
+}
+
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI', sans-serif; }
+    .xdr-header { padding:20px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:16px; }
+    .xdr-brand  { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-nav a  { color:#8b949e; font-size:13px; text-decoration:none; margin-right:12px; }
+    .xdr-nav a:hover  { color:#e6edf3; }
+    .xdr-nav a.active { color:#e6edf3; border-bottom:2px solid #e3b341; padding-bottom:2px; }
+    .xdr-sub    { font-size:12px; color:#8b949e; margin-left:auto; }
+
+    .layout { display:grid; grid-template-columns:340px 1fr; gap:0; height:calc(100vh - 54px); }
+    .left-panel  { border-right:1px solid #21262d; overflow-y:auto; }
+    .right-panel { overflow-y:auto; padding:20px 24px; }
+
+    .panel-title { padding:14px 16px; font-size:11px; font-weight:600; color:#8b949e;
+                   text-transform:uppercase; letter-spacing:.05em; border-bottom:1px solid #21262d; }
+
+    /* Target list (endpoints + sensors) */
+    .target-row { padding:12px 16px; border-bottom:1px solid #161b22; cursor:pointer; display:flex; align-items:center; gap:10px; }
+    .target-row:hover { background:#161b22; }
+    .target-row.selected { background:#1c2c3d; border-left:3px solid #58a6ff; }
+    .target-kind-pill { font-size:10px; padding:2px 6px; border-radius:4px; font-weight:600; flex-shrink:0; }
+    .target-kind-pill.kind-endpoint { background:#1c2c3d; color:#58a6ff; }
+    .target-kind-pill.kind-sensor   { background:#3d2c1c; color:#e3b341; }
+    .target-text { flex:1; min-width:0; }
+    .target-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .target-id   { font-family:monospace; font-size:10px; color:#484f58; margin-top:2px; }
+    .target-seen { font-size:11px; color:#8b949e; margin-top:2px; }
+
+    /* Action panel */
+    .action-group-title { font-size:11px; color:#8b949e; text-transform:uppercase;
+                          letter-spacing:.05em; margin:18px 0 8px; font-weight:600; }
+    .action-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px; }
+    .action-card { background:#161b22; border:1px solid #21262d; border-radius:8px; padding:16px;
+                   cursor:pointer; transition:border-color .15s; }
+    .action-card:hover { border-color:#58a6ff; }
+    .action-card.danger:hover { border-color:#f85149; }
+    .action-card.warn:hover   { border-color:#e3b341; }
+    .action-icon  { font-size:24px; margin-bottom:8px; }
+    .action-label { font-size:13px; font-weight:600; margin-bottom:4px; }
+    .action-desc  { font-size:11px; color:#8b949e; }
+
+    /* Modal */
+    .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; align-items:center; justify-content:center; }
+    .modal-bg.open { display:flex; }
+    .modal { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:24px; width:440px; max-width:95vw; }
+    .modal-title { font-size:15px; font-weight:600; margin-bottom:16px; }
+    .modal label  { display:block; font-size:12px; color:#8b949e; margin-bottom:4px; }
+    .modal input, .modal select { width:100%; background:#0d1117; border:1px solid #30363d; color:#e6edf3;
+                                   padding:8px 10px; border-radius:6px; font-size:13px; margin-bottom:12px; box-sizing:border-box; }
+    .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+    .btn-cancel  { background:transparent; border:1px solid #30363d; color:#8b949e; padding:7px 16px; border-radius:6px; cursor:pointer; font-size:13px; }
+    .btn-confirm { background:#da3633; color:#fff; border:none; padding:7px 16px; border-radius:6px; cursor:pointer; font-size:13px; }
+    .btn-confirm.safe { background:#238636; }
+    .btn-confirm.warn { background:#9e6a03; }
+
+    /* Command history */
+    .cmd-row  { padding:10px 0; border-bottom:1px solid #161b22; display:grid;
+                grid-template-columns:160px 100px 90px 1fr; gap:8px; font-size:12px; align-items:start; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+    .st-pending   { background:#3d2c1c; color:#e3b341; }
+    .st-delivered { background:#1c2c3d; color:#58a6ff; }
+    .st-acked     { background:#1c3d1c; color:#3fb950; }
+    .st-failed    { background:#3d1c1c; color:#f85149; }
+    .mono { font-family:monospace; font-size:11px; color:#8b949e; }
+    .section-title { font-size:13px; font-weight:600; color:#8b949e; text-transform:uppercase;
+                     letter-spacing:.05em; margin-bottom:12px; }
+    .no-target { padding:40px; text-align:center; color:#484f58; }
+    .toast { position:fixed; bottom:24px; right:24px; background:#238636; color:#fff;
+             padding:10px 20px; border-radius:8px; font-size:13px; display:none; z-index:200; }
+    .toast.error { background:#da3633; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span class="xdr-nav">
+        <a href="/">Alerts</a><a href="/events">Process</a><a href="/network">Network</a>
+        <a href="/files">Files</a><a href="/logins">Logins</a><a href="/memory">Memory</a>
+        <a href="/Rules">Rules</a><a href="/response" class="active" style="color:#e3b341;">⚡ Response</a>
+    </span>
+    <span class="xdr-sub">Real-Time Response</span>
+</div>
+
+<div class="layout">
+    <!-- Target list — endpoints + sensors -->
+    <div class="left-panel">
+
+        @if (endpoints.Any())
+        {
+            <div class="panel-title">Endpoint agents — @endpoints.Count</div>
+            @foreach (var t in endpoints)
+            {
+                <div class="target-row" data-target-id="@t.Id" data-target-kind="endpoint" data-target-name="@t.Name"
+                     onclick="selectTarget(this)">
+                    <span class="target-kind-pill kind-endpoint">EP</span>
+                    <div class="target-text">
+                        <div class="target-name">@t.Name</div>
+                        <div class="target-id">@t.Id</div>
+                        <div class="target-seen">last seen @(((DateTime)t.LastSeen).ToString("HH:mm:ss"))</div>
+                    </div>
+                </div>
+            }
+        }
+
+        @if (sensors.Any())
+        {
+            <div class="panel-title">Sensor nodes — @sensors.Count</div>
+            @foreach (var t in sensors)
+            {
+                <div class="target-row" data-target-id="@t.Id" data-target-kind="sensor" data-target-name="@t.Name"
+                     onclick="selectTarget(this)">
+                    <span class="target-kind-pill kind-sensor">NS</span>
+                    <div class="target-text">
+                        <div class="target-name">@t.Name</div>
+                        <div class="target-id">@t.Id</div>
+                        <div class="target-seen">last seen @(((DateTime)t.LastSeen).ToString("HH:mm:ss"))</div>
+                    </div>
+                </div>
+            }
+        }
+
+        @if (!endpoints.Any() && !sensors.Any())
+        {
+            <div class="no-target">
+                No agents or sensors registered yet.<br><br>
+                <span style="font-size:11px;">An endpoint becomes visible after sending its first event.<br>
+                A sensor node becomes visible after its first batch ship.</span>
+            </div>
+        }
+    </div>
+
+    <!-- Action panel -->
+    <div class="right-panel">
+        <div id="action-pane" style="display:none;">
+            <div style="margin-bottom:16px;">
+                <div style="font-size:11px; color:#8b949e; text-transform:uppercase; letter-spacing:.05em;">Selected target</div>
+                <div style="font-size:16px; font-weight:600; margin-top:4px;" id="selected-name">—</div>
+                <div class="mono" id="selected-id">—</div>
+            </div>
+
+            <!-- Endpoint-only actions -->
+            <div id="endpoint-actions" style="display:none;">
+                <div class="action-group-title">Endpoint actions</div>
+                <div class="action-grid">
+                    <div class="action-card danger" onclick="openModal('kill_process')">
+                        <div class="action-icon">🛑</div>
+                        <div class="action-label">Kill process</div>
+                        <div class="action-desc">Terminate a running process by PID</div>
+                    </div>
+                    <div class="action-card warn" onclick="openModal('quarantine_file')">
+                        <div class="action-icon">📁</div>
+                        <div class="action-label">Quarantine file</div>
+                        <div class="action-desc">Chmod 000 and rename .quarantine</div>
+                    </div>
+                    <div class="action-card" onclick="openModal('collect_file')">
+                        <div class="action-icon">📥</div>
+                        <div class="action-label">Collect file</div>
+                        <div class="action-desc">Pull file contents back for analysis</div>
+                    </div>
+                    <div class="action-card danger" onclick="openModal('isolate_host')">
+                        <div class="action-icon">🔒</div>
+                        <div class="action-label">Isolate host</div>
+                        <div class="action-desc">iptables drop-all except manager IP</div>
+                    </div>
+                    <div class="action-card warn" onclick="openModal('run_command')">
+                        <div class="action-icon">⚡</div>
+                        <div class="action-label">Run command</div>
+                        <div class="action-desc">Execute arbitrary shell command</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sensor-only actions -->
+            <div id="sensor-actions" style="display:none;">
+                <div class="action-group-title">Sensor actions</div>
+                <div class="action-grid">
+                    <div class="action-card danger" onclick="openModal('block_mac')">
+                        <div class="action-icon">🚫</div>
+                        <div class="action-label">Block MAC</div>
+                        <div class="action-desc">nftables drop traffic from a MAC</div>
+                    </div>
+                    <div class="action-card danger" onclick="openModal('block_ip')">
+                        <div class="action-icon">🚫</div>
+                        <div class="action-label">Block IP</div>
+                        <div class="action-desc">nftables drop traffic to/from an IP</div>
+                    </div>
+                    <div class="action-card warn" onclick="openModal('sinkhole_domain')">
+                        <div class="action-icon">🌐</div>
+                        <div class="action-label">Sinkhole domain</div>
+                        <div class="action-desc">dnsmasq resolve to 0.0.0.0</div>
+                    </div>
+                    <div class="action-card warn" onclick="openModal('rate_limit_mac')">
+                        <div class="action-icon">🐢</div>
+                        <div class="action-label">Rate limit MAC</div>
+                        <div class="action-desc">tc throttle to a kbit/s ceiling</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div style="margin-top:32px;">
+                <div class="section-title">Recent commands — all targets</div>
+                <div class="cmd-row" style="font-weight:600; color:#8b949e; border-bottom:1px solid #30363d;">
+                    <div>Issued</div><div>Action</div><div>Status</div><div>Target / params</div>
+                </div>
+                @if (!cmds.Any())
+                {
+                    <div style="padding:24px; color:#484f58; font-size:12px;">No commands issued yet.</div>
+                }
+                else
+                {
+                    @foreach (var c in cmds)
+                    {
+                        <div class="cmd-row" data-command-id="@c.CommandId">
+                            <div class="mono">@c.IssuedAt.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                            <div><strong>@c.Action</strong></div>
+                            <div><span class="badge st-@c.Status" id="badge-@c.CommandId">@c.Status</span></div>
+                            <div class="mono" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                                 title="@c.AgentId — @c.ParamsJson">
+                                @c.AgentId.ToString().Substring(0, 8)… · @c.ParamsJson
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <div id="no-selection" class="no-target">
+            <div style="font-size:48px; margin-bottom:12px;">⚡</div>
+            Select an agent or sensor on the left to issue a response action.
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal-bg">
+    <div class="modal">
+        <div class="modal-title" id="modal-title">Confirm action</div>
+        <div id="modal-fields"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-confirm" id="modal-confirm" onclick="submitAction()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let _targetId   = null;
+let _targetKind = null;
+let _targetName = null;
+let _action     = null;
+
+function selectTarget(row) {
+    document.querySelectorAll('.target-row').forEach(r => r.classList.remove('selected'));
+    row.classList.add('selected');
+
+    _targetId   = row.dataset.targetId;
+    _targetKind = row.dataset.targetKind;
+    _targetName = row.dataset.targetName;
+
+    document.getElementById('no-selection').style.display = 'none';
+    document.getElementById('action-pane').style.display  = 'block';
+    document.getElementById('selected-name').textContent  = _targetName;
+    document.getElementById('selected-id').textContent    = _targetId;
+
+    document.getElementById('endpoint-actions').style.display = _targetKind === 'endpoint' ? 'block' : 'none';
+    document.getElementById('sensor-actions').style.display   = _targetKind === 'sensor'   ? 'block' : 'none';
+}
+
+// Schema for each action — which fields to show in the modal.
+const ACTION_FIELDS = {
+    // Endpoint actions
+    kill_process:    [{ name: 'pid',  label: 'PID',          type: 'number', required: true }],
+    quarantine_file: [{ name: 'path', label: 'File path',    type: 'text',   required: true, placeholder: '/tmp/malware.bin' }],
+    collect_file:    [{ name: 'path', label: 'File path',    type: 'text',   required: true }],
+    isolate_host:    [{ name: 'allow_ip', label: 'Allow IP (manager)', type: 'text', required: true, placeholder: '10.0.0.1' }],
+    run_command:     [{ name: 'cmd',  label: 'Shell command',type: 'text',   required: true, placeholder: 'ps aux | grep suspicious' }],
+
+    // Sensor actions
+    block_mac:       [
+        { name: 'mac',      label: 'MAC address', type: 'text',   required: true, placeholder: 'aa:bb:cc:dd:ee:ff' },
+        { name: 'ttl_sec',  label: 'TTL (seconds, optional)', type: 'number', required: false },
+    ],
+    block_ip:        [
+        { name: 'ip',       label: 'IP address',  type: 'text',   required: true, placeholder: '192.168.1.42' },
+        { name: 'ttl_sec',  label: 'TTL (seconds, optional)', type: 'number', required: false },
+    ],
+    sinkhole_domain: [{ name: 'domain', label: 'Domain',      type: 'text',   required: true, placeholder: 'badactor.example.com' }],
+    rate_limit_mac:  [
+        { name: 'mac',      label: 'MAC address', type: 'text',   required: true },
+        { name: 'kbit',     label: 'Ceiling kbit/s', type: 'number', required: false, placeholder: '64' },
+    ],
+};
+
+const ACTION_LABEL = {
+    kill_process: 'Kill process', quarantine_file: 'Quarantine file', collect_file: 'Collect file',
+    isolate_host: 'Isolate host', run_command: 'Run command',
+    block_mac: 'Block MAC', block_ip: 'Block IP', sinkhole_domain: 'Sinkhole domain', rate_limit_mac: 'Rate limit MAC',
+};
+
+const ACTION_TONE = {
+    kill_process: 'danger', isolate_host: 'danger', block_mac: 'danger', block_ip: 'danger',
+    quarantine_file: 'warn', run_command: 'warn', sinkhole_domain: 'warn', rate_limit_mac: 'warn',
+    collect_file: 'safe',
+};
+
+function openModal(action) {
+    _action = action;
+    document.getElementById('modal-title').textContent = `${ACTION_LABEL[action]} on ${_targetName}`;
+    const fields = ACTION_FIELDS[action] || [];
+    const html = fields.map(f => `
+        <label>${f.label}${f.required ? ' *' : ''}</label>
+        <input type="${f.type}" id="field-${f.name}" placeholder="${f.placeholder || ''}" ${f.required ? 'required' : ''}>
+    `).join('');
+    document.getElementById('modal-fields').innerHTML = html;
+
+    const confirm = document.getElementById('modal-confirm');
+    confirm.className = 'btn-confirm ' + (ACTION_TONE[action] || '');
+    confirm.textContent = ACTION_LABEL[action];
+
+    document.getElementById('modal-bg').classList.add('open');
+}
+
+function closeModal() {
+    document.getElementById('modal-bg').classList.remove('open');
+    _action = null;
+}
+
+async function submitAction() {
+    const fields = ACTION_FIELDS[_action] || [];
+    const params = {};
+    for (const f of fields) {
+        const val = document.getElementById(`field-${f.name}`).value;
+        if (val === '' || val === null || val === undefined) {
+            if (f.required) {
+                showToast(`Missing required field: ${f.label}`, true);
+                return;
+            }
+            continue;
+        }
+        params[f.name] = f.type === 'number' ? Number(val) : val;
+    }
+
+    const body = {
+        AgentId: _targetId,
+        Action:  _action,
+        Params:  params,
+        IssuedBy: 'console',
+    };
+
+    try {
+        const r = await fetch('/api/response/issue', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(body),
+        });
+        if (!r.ok) {
+            showToast(`Failed to issue: HTTP ${r.status}`, true);
+            return;
+        }
+        showToast(`Issued: ${ACTION_LABEL[_action]} → ${_targetName}`);
+        closeModal();
+        setTimeout(() => window.location.reload(), 1200);
+    } catch (e) {
+        showToast(`Network error: ${e.message}`, true);
+    }
+}
+
+function showToast(msg, isError) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className   = 'toast' + (isError ? ' error' : '');
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+// ── Live command status via SignalR ───────────────────────────────────────────
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+<script>
+const _hub = new signalR.HubConnectionBuilder()
+    .withUrl('/alertHub')
+    .withAutomaticReconnect()
+    .build();
+
+_hub.on('CommandStatusUpdate', (update) => {
+    const badge = document.getElementById(`badge-${update.commandId}`);
+    if (badge) {
+        // Update the badge class and text in-place — no page reload needed
+        badge.className = `badge st-${update.status}`;
+        badge.textContent = update.status;
+    }
+
+    const icon   = update.status === 'acked' ? '✅' : '❌';
+    const label  = update.status === 'acked' ? 'executed' : 'failed';
+    showToast(`${icon} ${update.action} ${label} on ${update.agentId?.substring(0, 8)}…`,
+              update.status !== 'acked');
+});
+
+_hub.start().catch(e => console.warn('Response hub:', e));
+</script>

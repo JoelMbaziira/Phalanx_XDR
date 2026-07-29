@@ -1,0 +1,72 @@
+@model IEnumerable<Phalanx.Shared.Data.SensorAlert>
+@{ ViewData["Title"] = "Phalanx XDR — Sensor Alerts"; }
+<style>
+    body { background:#0d1117; color:#e6edf3; font-family:'Segoe UI',sans-serif; margin:0; }
+    .xdr-header { padding:18px 24px 12px; border-bottom:1px solid #21262d; display:flex; align-items:center; gap:16px; }
+    .xdr-brand  { font-size:18px; font-weight:600; color:#58a6ff; }
+    .xdr-nav a  { color:#8b949e; font-size:13px; text-decoration:none; margin-right:12px; }
+    .xdr-nav a:hover  { color:#e6edf3; }
+    .xdr-nav a.active { color:#e6edf3; border-bottom:2px solid #58a6ff; padding-bottom:2px; }
+    .section { padding:16px 24px; }
+    .section-title { font-size:13px; font-weight:600; color:#8b949e; text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 12px; font-size:11px; color:#8b949e; border-bottom:1px solid #21262d; font-weight:500; }
+    td { padding:10px 12px; border-bottom:1px solid #161b22; vertical-align:top; }
+    tr:hover td { background:#161b22; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+    .type-beacon { background:#1c2c3d; color:#58a6ff; }
+    .type-scan   { background:#3d2c1c; color:#e3b341; }
+    .type-dga    { background:#3d1c1c; color:#f85149; }
+    .type-tunnel { background:#2c1c3d; color:#d2a8ff; }
+    .conf-bar    { width:80px; height:5px; background:#21262d; border-radius:3px; margin-top:4px; }
+    .conf-fill   { height:100%; border-radius:3px; background:#58a6ff; }
+    .mono { font-family:monospace; font-size:12px; color:#8b949e; }
+</style>
+
+<div class="xdr-header">
+    <span class="xdr-brand">⬡ Phalanx XDR</span>
+    <span class="xdr-nav">
+        <a href="/">Alerts</a>
+        <a href="/devices">Devices</a>
+        <a href="/sensor-dns">Sensor DNS</a>
+        <a href="/sensor-alerts" class="active">Sensor Alerts</a>
+        <a href="/events">Process</a>
+        <a href="/Rules">Rules</a>
+        <a href="/response" style="color:#e3b341;">⚡ Response</a>
+    </span>
+</div>
+
+<div class="section">
+    <div class="section-title">Sensor alerts — @Model.Count() total</div>
+    <table>
+        <thead>
+            <tr><th>Time</th><th>Type</th><th>Source</th><th>Destination</th><th>Confidence</th><th>Detail</th><th>Node</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var a in Model)
+        {
+            var typeCls = a.AlertType switch {
+                "beacon"    => "type-beacon",
+                "port_scan" => "type-scan",
+                "host_sweep"=> "type-scan",
+                "dga"       => "type-dga",
+                "tunnel"    => "type-tunnel",
+                _ => "type-scan"
+            };
+            var confPct = (int)(a.Confidence * 100);
+            <tr>
+                <td class="mono">@a.Timestamp.ToString("HH:mm:ss")<br><span style="color:#484f58;font-size:10px">@a.Timestamp.ToString("MM-dd")</span></td>
+                <td><span class="badge @typeCls">@a.AlertType.Replace("_"," ")</span></td>
+                <td class="mono">@a.SrcIp<br><span style="color:#484f58">@a.SrcMac</span></td>
+                <td class="mono">@(a.DstIp.Length > 0 ? $"{a.DstIp}:{a.DstPort}" : "—")</td>
+                <td>
+                    @confPct%
+                    <div class="conf-bar"><div class="conf-fill" style="width:@confPct%"></div></div>
+                </td>
+                <td style="max-width:300px;font-size:12px">@a.Detail</td>
+                <td class="mono" style="font-size:11px">@a.NodeId[..Math.Min(8, a.NodeId.Length)]…</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

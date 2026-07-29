@@ -1,0 +1,107 @@
+@model IEnumerable<Phalanx.Shared.Data.EmailEvent>
+
+@{
+    ViewData["Title"] = "Email / Phishing";
+    var q = ViewBag.Query as string;
+}
+
+<header class="phx-page-head">
+    <div class="phx-page-head-text">
+        <h1 class="phx-page-title">Email &amp; Phishing</h1>
+        <p class="phx-page-lede">Phishing payload delivery, suspicious attachments, and mail anomalies</p>
+    </div>
+</header>
+
+<div class="phx-content">
+    <div class="phx-card" style="margin-bottom:16px;">
+        <div class="phx-card-body is-padded">
+            <form method="get" style="display:flex; gap:8px;">
+                <input class="phx-search" name="q" value="@q" placeholder="Search sender · subject · attachment · detail…" style="flex:1;" />
+                <button type="submit" class="phx-btn">Search</button>
+                @if (!string.IsNullOrEmpty(q))
+                {
+                    <a href="/email" class="phx-btn phx-btn-ghost">Clear</a>
+                }
+            </form>
+        </div>
+    </div>
+
+    <div class="phx-card">
+        <div class="phx-card-head">
+            <h2 class="phx-card-title">Email events</h2>
+            <span class="phx-card-meta">@Model.Count() records</span>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="phx-empty">
+                <svg class="phx-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 8L10.9 13.3A2 2 0 0013.1 13.3L21 8M5 20H19A2 2 0 0021 18V6A2 2 0 0019 4H5A2 2 0 003 6V18A2 2 0 005 20Z"/>
+                </svg>
+                <div class="phx-empty-text">No email events</div>
+                <div class="phx-empty-hint">Events appear when the Sentinel EmailMonitor detects suspicious activity</div>
+            </div>
+        }
+        else
+        {
+            <div class="phx-table-wrap">
+                <table class="phx-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>Indicator</th>
+                            <th>Sender</th>
+                            <th>Subject / Attachment</th>
+                            <th>Process</th>
+                            <th>Host</th>
+                            <th>Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var e in Model)
+                    {
+                        var indClass = (e.IndicatorType ?? "").ToLower() switch
+                        {
+                            "phishing"             => "sev-high",
+                            "malware_attachment"   => "sev-critical",
+                            "credential_harvesting"=> "sev-high",
+                            "smtp_anomaly"         => "sev-medium",
+                            _                      => "sev-low"
+                        };
+                        <tr>
+                            <td class="phx-mono" style="white-space:nowrap;">
+                                <span data-time-utc="@e.Timestamp.ToString("o")" data-time-format="datetime"></span>
+                            </td>
+                            <td><span class="phx-mono" style="font-size:11px;">@e.Action</span></td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(e.IndicatorType))
+                                {
+                                    <span class="phx-badge @indClass">@e.IndicatorType</span>
+                                }
+                            </td>
+                            <td class="phx-mono" style="font-size:12px; max-width:160px; overflow:hidden; text-overflow:ellipsis;">@e.Sender</td>
+                            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis;">
+                                @if (!string.IsNullOrEmpty(e.Subject))        { <span>@e.Subject</span> }
+                                @if (!string.IsNullOrEmpty(e.AttachmentName)) { <span class="phx-mono" style="font-size:11px; color:var(--phx-text-muted);">@e.AttachmentName</span> }
+                            </td>
+                            <td class="phx-mono" style="font-size:12px;">
+                                @if (!string.IsNullOrEmpty(e.ClientProcess))
+                                {
+                                    <span style="color:var(--phx-text);">@e.ClientProcess</span>
+                                    @if (!string.IsNullOrEmpty(e.ChildProcess))
+                                    {
+                                        <span style="color:var(--phx-danger);"> → @e.ChildProcess</span>
+                                    }
+                                }
+                            </td>
+                            <td class="phx-mono" style="font-size:12px;">@e.Hostname</td>
+                            <td style="font-size:12px; color:var(--phx-text-muted); max-width:220px; overflow:hidden; text-overflow:ellipsis;">@e.Detail</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
